@@ -28,37 +28,41 @@ export async function POST(req) {
     const processed = await jimg.getBufferAsync(Jimp.MIME_PNG);
     const dataUri = `data:image/png;base64,${processed.toString("base64")}`;
 
+    // HIER wird "replicate" definiert – das hat dir gefehlt
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
+    });
+
+    // Modell-Aufruf (deine gültige Version)
     const output = await replicate.run(
-  "fofr/latent-consistency-model:683d19dc312f7a9f0428b04429a9ccefd28dbf7785fef083ad5cf991b65f406f",
-  {
-    input: {
-      image: dataUri,
-      width: 768,
-      height: 768,
+      "fofr/latent-consistency-model:683d19dc312f7a9f0428b04429a9ccefd28dbf7785fef083ad5cf991b65f406f",
+      {
+        input: {
+          image: dataUri,
+          width: 768,
+          height: 768,
 
-      // Ziel: echtes Foto, kein Ultraschall-Look
-      prompt:
-        "highly realistic close-up photograph of a real newborn baby, natural skin texture, soft neutral skin tone, closed eyes, gentle studio lighting, shallow depth of field, looks like a real camera photo",
+          // Ziel: echtes Foto, kein Ultraschall-Look
+          prompt:
+            "highly realistic close-up photograph of a real newborn baby, natural soft skin texture, neutral skin tone, closed eyes, gentle studio lighting, shallow depth of field, looks like a real camera photo",
 
-      // alles, was wir NICHT wollen
-      negative_prompt:
-        "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, 3d render, cg, painting, orange sepia tone, blurry, distorted face",
+          // Dinge, die wir NICHT wollen
+          negative_prompt:
+            "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, 3d render, cg, painting, orange sepia tone, medical scan, blurry, distorted face",
 
-      num_images: 1,
+          num_images: 1,
 
-      // Modell darf stärker verändern, weg vom Ultraschall
-      guidance_scale: 4,
-      prompt_strength: 0.7,      // WICHTIG: hoch = mehr echtes Foto, weniger Ultraschall
+          // Mehr weg vom Original, mehr Richtung Foto
+          guidance_scale: 4,
+          prompt_strength: 0.7,
 
-      archive_outputs: false,
-      sizing_strategy: "width/height",
-      lcm_origin_steps: 50,
-      num_inference_steps: 8     // etwas mehr Details
-
-      // KEIN canny_*, KEIN controlnet_conditioning_scale mehr
-    },
-  }
-);
+          archive_outputs: false,
+          sizing_strategy: "width/height",
+          lcm_origin_steps: 50,
+          num_inference_steps: 8
+        },
+      }
+    );
 
     // output[0] ist ein File-Objekt mit .url()
     const first = Array.isArray(output) ? output[0] : output;
