@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { image, prompt, gender } = body || {}; // prompt & gender von v0
+    const { image, gender } = body || {}; // gender kommt von v0 (girl/boy)
 
     if (!image) {
       return new Response(
@@ -15,33 +15,37 @@ export async function POST(req) {
       );
     }
 
-    // Bild vorbereiten
+    // Base64 aus Data-URL herauslösen
     let base64 = image;
     if (base64.startsWith("data:")) {
       base64 = base64.split(",")[1];
     }
+
+    // Mit Jimp auf 768x768 bringen
     const buffer = Buffer.from(base64, "base64");
     const jimg = await Jimp.read(buffer);
     jimg.scaleToFit(768, 768);
     const processed = await jimg.getBufferAsync(Jimp.MIME_PNG);
     const dataUri = `data:image/png;base64,${processed.toString("base64")}`;
 
+    // Replicate-Client
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Falls v0 keinen prompt geschickt hat, fallback mit gender
-    let finalPrompt = prompt;
-    if (!finalPrompt || !finalPrompt.trim()) {
-      let genderPrefix = "";
-      if (gender === "girl" || gender === "kiz") genderPrefix = "baby girl, ";
-      if (gender === "boy" || gender === "erkek") genderPrefix = "baby boy, ";
-
-      const basePrompt =
-        "ultra realistic studio photograph of a 1-year-old baby, normal facial proportions, natural skin texture, softly focused background, shot with a DSLR camera, no makeup, no fantasy";
-
-      finalPrompt = `${genderPrefix}${basePrompt}`;
+    // ---------- Gender-Text: aber immer NEWBORN ----------
+    let genderPrefix = "newborn baby, ";
+    if (gender === "girl" || gender === "kiz") {
+      genderPrefix = "newborn baby girl, ";
+    } else if (gender === "boy" || gender === "erkek") {
+      genderPrefix = "newborn baby boy, ";
     }
+
+    // Basis-Prompt: echtes Neugeborenes, kaum Haare
+    const basePrompt =
+      "0-3 days old, highly realistic close-up photograph, almost bald or very fine fuzzy hair, closed eyes, tiny nose, plump newborn cheeks, soft natural skin texture, wrapped in a simple soft blanket, neutral background, gentle hospital or studio lighting, looks like a real camera photo, no makeup, no accessories";
+
+    const fullPrompt = `${genderPrefix}${basePrompt}`;
 
     const output = await replicate.run(
       "fofr/latent-consistency-model:683d19dc312f7a9f0428b04429a9ccefd28dbf7785fef083ad5cf991b65f406f",
@@ -51,18 +55,23 @@ export async function POST(req) {
           width: 768,
           height: 768,
 
-          prompt: finalPrompt,
+          // immer newborn, mit Gender-Präfix
+          prompt: fullPrompt,
 
+          // VERBIETEN: große Augen, Haare, ältere Kinder, Cartoon etc.
           negative_prompt:
-            "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, anime, pixar, disney style, cartoon, illustration, painting, 3d render, cg, cgi, plastic skin, porcelain doll, toy photo, glass eyes, glossy doll eyes, huge eyes, big anime eyes, oversized pupils, creepy eyes, horror, deformed face, medical scan, orange sepia tone",
+            "toddler, 6 months, 1 year old, child, thick hair, long hair, curly hair, hairstyle, ponytail, fringe, bangs, bow, headband, hat, earrings, teeth, anime, pixar, disney style, cartoon, illustration, painting, 3d render, cgi, doll, toy, glass eyes, porcelain skin, plastic skin, ultrasound, 3d ultrasound, medical scan, orange sepia tone, horror, deformed face",
 
           num_images: 1,
-          guidance_scale: 3.5,
-          prompt_strength: 0.85,
+
+          // stärker Richtung Prompt (newborn)
+          guidance_scale: 4.0,
+          prompt_strength: 0.9,
+
           archive_outputs: false,
           sizing_strategy: "width/height",
           lcm_origin_steps: 50,
-          num_inference_steps: 10,
+          num_inference_steps: 12,
         },
       }
     );
