@@ -43,14 +43,11 @@ export async function POST(req) {
           height: 768,
 
           // Ziel: echtes Foto, kein Ultraschall-Look
-          prompt:
-            "highly realistic close-up photograph of a real newborn baby, natural soft skin texture, neutral skin tone, closed eyes, gentle studio lighting, shallow depth of field, looks like a real camera photo",
+         prompt:
+  "ultra realistic close-up photograph of a 6-9 month old baby, natural proportions, realistic eyelids and eyelashes, soft round nose, slightly rosy cheeks, subtle skin texture, closed relaxed eyes, soft studio lighting, shot with a DSLR camera, no makeup, no fantasy",
 
-          // Dinge, die wir NICHT wollen
-          negative_prompt:
-            "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, 3d render, cg, painting, orange sepia tone, medical scan, blurry, distorted face",
-
-          num_images: 1,
+negative_prompt:
+  "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, anime, pixar, 3d render, cg, painting, illustration, huge eyes, glass eyes, doll eyes, blurred eyes, orange sepia tone, medical scan, deformed face",
 
           // Mehr weg vom Original, mehr Richtung Foto
           guidance_scale: 4,
