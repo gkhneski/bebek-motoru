@@ -28,12 +28,12 @@ export async function POST(req) {
     const processed = await jimg.getBufferAsync(Jimp.MIME_PNG);
     const dataUri = `data:image/png;base64,${processed.toString("base64")}`;
 
-    // HIER wird "replicate" definiert – das hat dir gefehlt
+    // Replicate-Client
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Modell-Aufruf (deine gültige Version)
+    // Modell-Aufruf
     const output = await replicate.run(
       "fofr/latent-consistency-model:683d19dc312f7a9f0428b04429a9ccefd28dbf7785fef083ad5cf991b65f406f",
       {
@@ -42,21 +42,24 @@ export async function POST(req) {
           width: 768,
           height: 768,
 
-          // Ziel: echtes Foto, kein Ultraschall-Look
-         prompt:
-  "ultra realistic close-up photograph of a 6-9 month old baby, natural proportions, realistic eyelids and eyelashes, soft round nose, slightly rosy cheeks, subtle skin texture, closed relaxed eyes, soft studio lighting, shot with a DSLR camera, no makeup, no fantasy",
+          // Ziel: echtes Babyfoto, normale Augen
+          prompt:
+            "ultra realistic studio photograph of a 1-year-old baby, normal facial proportions, smaller almond-shaped eyes, clearly defined eyelids and eyelashes, natural brown irises, subtle catchlight in the eyes, soft but real skin texture, light blush on the cheeks, softly focused background, shot with a DSLR camera, no makeup, no fantasy",
 
-negative_prompt:
-  "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, anime, pixar, 3d render, cg, painting, illustration, huge eyes, glass eyes, doll eyes, blurred eyes, orange sepia tone, medical scan, deformed face",
+          // alles verbieten, was Puppen-/Anime-Augen macht
+          negative_prompt:
+            "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, anime, pixar, disney style, cartoon, illustration, painting, 3d render, cg, cgi, plastic skin, porcelain doll, toy photo, glass eyes, glossy doll eyes, huge eyes, big anime eyes, oversized pupils, creepy eyes, horror, deformed face, medical scan, orange sepia tone",
 
-          // Mehr weg vom Original, mehr Richtung Foto
-          guidance_scale: 4,
-          prompt_strength: 0.7,
+          num_images: 1,
+
+          // stärker Richtung Prompt, weniger Richtung Ultraschall
+          guidance_scale: 3.5,
+          prompt_strength: 0.85,
 
           archive_outputs: false,
           sizing_strategy: "width/height",
           lcm_origin_steps: 50,
-          num_inference_steps: 8
+          num_inference_steps: 10,
         },
       }
     );
