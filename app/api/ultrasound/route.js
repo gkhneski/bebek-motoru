@@ -28,42 +28,37 @@ export async function POST(req) {
     const processed = await jimg.getBufferAsync(Jimp.MIME_PNG);
     const dataUri = `data:image/png;base64,${processed.toString("base64")}`;
 
-    // >>> HIER wird "replicate" definiert <<<
-    const replicate = new Replicate({
-      auth: process.env.REPLICATE_API_TOKEN,
-    });
-
-    // Aufruf des Modells mit DEINER Version
     const output = await replicate.run(
-      "fofr/latent-consistency-model:683d19dc312f7a9f0428b04429a9ccefd28dbf7785fef083ad5cf991b65f406f",
-      {
-        input: {
-          image: dataUri,
-          width: 768,
-          height: 768,
+  "fofr/latent-consistency-model:683d19dc312f7a9f0428b04429a9ccefd28dbf7785fef083ad5cf991b65f406f",
+  {
+    input: {
+      image: dataUri,
+      width: 768,
+      height: 768,
 
-          // Realistischere Baby-Beschreibung
-          prompt:
-            "highly realistic photograph of a real baby, natural skin texture, normal sized eyes, soft studio lighting, gentle warm tones, looks like a real photo, not a painting, not a 3D render, not a doll",
+      // Ziel: echtes Foto, kein Ultraschall-Look
+      prompt:
+        "highly realistic close-up photograph of a real newborn baby, natural skin texture, soft neutral skin tone, closed eyes, gentle studio lighting, shallow depth of field, looks like a real camera photo",
 
-          num_images: 1,
+      // alles, was wir NICHT wollen
+      negative_prompt:
+        "ultrasound, 3d ultrasound, clay, wax, sculpture, plastic, doll, toy, 3d render, cg, painting, orange sepia tone, blurry, distorted face",
 
-          // Weniger aggressives Styling
-          guidance_scale: 5,
-          prompt_strength: 0.3,
+      num_images: 1,
 
-          archive_outputs: false,
-          sizing_strategy: "width/height",
-          lcm_origin_steps: 50,
-          canny_low_threshold: 100,
-          num_inference_steps: 6,
-          canny_high_threshold: 200,
-          control_guidance_end: 1,
-          control_guidance_start: 0,
-          controlnet_conditioning_scale: 1.5,
-        },
-      }
-    );
+      // Modell darf stärker verändern, weg vom Ultraschall
+      guidance_scale: 4,
+      prompt_strength: 0.7,      // WICHTIG: hoch = mehr echtes Foto, weniger Ultraschall
+
+      archive_outputs: false,
+      sizing_strategy: "width/height",
+      lcm_origin_steps: 50,
+      num_inference_steps: 8     // etwas mehr Details
+
+      // KEIN canny_*, KEIN controlnet_conditioning_scale mehr
+    },
+  }
+);
 
     // output[0] ist ein File-Objekt mit .url()
     const first = Array.isArray(output) ? output[0] : output;
